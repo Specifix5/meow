@@ -8,6 +8,7 @@
     "start": "echo \"Running on Production!\" && node ./dist/index.js"
   },
   "keywords": [],
+  "type": "module",
   "author": "specifix5",
   "license": "MIT",
   "description": "Multi-purpose discord bot",

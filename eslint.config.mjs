@@ -11,7 +11,8 @@ export default tseslint.config(
     // config with just ignores is the replacement for `.eslintignore`
     ignores: ["**/build/**", "**/dist/**"],
   },
-  ...tseslint.configs.recommended,
+  ...tseslint.configs.recommendedTypeChecked,
+  ...tseslint.configs.stylisticTypeChecked,
   {
     plugins: {
       "@typescript-eslint": tseslint.plugin,
@@ -21,6 +22,10 @@ export default tseslint.config(
     files: ["src/**/*.ts"],
     languageOptions: {
       parser: parserTs,
+      parserOptions: {
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
+      },
       globals: {
         ...globals.node,
       },
@@ -28,7 +33,6 @@ export default tseslint.config(
     rules: {
       "@stylistic/ts/semi": ["error", "always"],
       "@stylistic/ts/indent": ["error", 2],
-
       "@typescript-eslint/no-unused-vars": [
         "error",
         {
@@ -41,14 +45,54 @@ export default tseslint.config(
           ignoreRestSiblings: true,
         },
       ],
-      "@typescript-eslint/no-explicit-any": "off",
+      "@typescript-eslint/no-explicit-any": "error",
       "eol-last": ["error", "always"],
       "no-multiple-empty-lines": ["error", { max: 1 }],
+      // Best practices
+      "default-case-last": "error",
+      "default-param-last": "error",
+      "dot-location": ["error", "property"],
+      "dot-notation": "error",
+      eqeqeq: "error",
+      "grouped-accessor-pairs": ["error", "getBeforeSet"],
+      "guard-for-in": "error",
+      "no-alert": "error",
+      "no-caller": "error",
+      "no-constructor-return": "error",
+      "no-else-return": "error",
+      "@typescript-eslint/no-empty-function": "error",
+      "no-eval": "error",
+      "no-extend-native": "error",
+      "no-extra-bind": "error",
+      "no-floating-decimal": "error",
+      "no-implied-eval": "error",
+      "@typescript-eslint/no-invalid-this": "error",
+      "no-iterator": "error",
+      "no-labels": "error",
+      "no-lone-blocks": "error",
+      "no-loop-func": "error",
+      "no-multi-spaces": "error",
+      "no-new-wrappers": "error",
+      "no-octal": "error",
+      "no-octal-escape": "error",
+      "no-proto": "error",
+      "no-return-assign": ["error", "except-parens"],
+      "no-return-await": "error",
+      "no-self-compare": "error",
+      "no-sequences": "error",
+      "no-throw-literal": "error",
+      "no-unmodified-loop-condition": "error",
+      "no-unused-expressions": "error",
+      "no-warning-comments": "warn",
+      "prefer-promise-reject-errors": "error",
+      radix: "error",
+      "wrap-iife": "error",
+      yoda: "error",
     },
   },
   {
     // disable type-aware linting on JS files
-    files: ["**/*.js"],
+    files: ["**/*.js", "**/*.mjs"],
     ...tseslint.configs.disableTypeChecked,
   },
 );

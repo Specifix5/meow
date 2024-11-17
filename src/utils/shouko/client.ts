@@ -1,5 +1,5 @@
 import { Client, ClientOptions } from "discord.js";
-import { getLogger, GetString, Logger, getString } from "../logging";
+import { getLogger, GetString, Logger, getString } from "../logging.js";
 import {
   getCommands,
   getMessageCommands,
@@ -7,7 +7,7 @@ import {
   setCommands,
   setMessageCommands,
   setUserCommands,
-} from "./command";
+} from "./command.js";
 
 export class ShoukoClient extends Client {
   logger: Logger;
@@ -18,6 +18,7 @@ export class ShoukoClient extends Client {
   getCommands: getCommands;
   getUserCommands: getUserCommands;
   getMessageCommands: getMessageCommands;
+  commandCategories: string[];
 
   constructor(options: ClientOptions) {
     super(options);
@@ -29,5 +30,6 @@ export class ShoukoClient extends Client {
     this.getCommands = getCommands;
     this.getUserCommands = getUserCommands;
     this.getMessageCommands = getMessageCommands;
+    this.commandCategories = [];
   }
 }

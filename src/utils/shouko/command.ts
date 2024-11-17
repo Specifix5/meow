@@ -1,11 +1,9 @@
 import {
   ApplicationCommandOptionData,
   ApplicationCommandOptionType,
-  Attachment,
   AutocompleteInteraction,
   BaseApplicationCommandData,
   CacheType,
-  Channel,
   ChatInputApplicationCommandData,
   CommandInteraction,
   CommandInteractionOptionResolver,
@@ -23,24 +21,26 @@ import {
   UserApplicationCommandData,
   UserContextMenuCommandInteraction,
 } from "discord.js";
-import { PREFIX } from "../constants";
-import { ShoukoClient } from "./client";
+import { PREFIX } from "../constants.js";
+import { ShoukoClient } from "./client.js";
+import { ParsedOptions, CommandOptionValue } from "../types.js";
 
-export interface ShoukoBaseCommand extends BaseApplicationCommandData {
+export interface BaseCommand extends BaseApplicationCommandData {
   category?: string;
+  id?: string;
 }
-type CommandOptionValue =
-  | string
-  | number
-  | boolean
-  | User
-  | Promise<User>
-  | GuildMember
-  | Promise<GuildMember>
-  | Channel
-  | Promise<Channel | null>
-  | Attachment
-  | null;
+export interface Command extends ChatInputApplicationCommandData, BaseCommand {
+  run: (_client: ShoukoClient, _interaction: ShoukoInteraction) => Promise<void>;
+  autocomplete?: (_client: ShoukoClient, _interaction: AutocompleteInteraction) => Promise<void>;
+}
+
+export interface UserCommand extends UserApplicationCommandData, BaseCommand {
+  run: (_client: ShoukoClient, _interaction: ShoukoInteraction) => Promise<void>;
+}
+
+export interface MessageCommand extends MessageApplicationCommandData, BaseCommand {
+  run: (_client: ShoukoClient, _interaction: MessageContextMenuCommandInteraction) => Promise<void>;
+}
 
 export class ShoukoInteraction {
   client: ShoukoClient;
@@ -58,7 +58,7 @@ export class ShoukoInteraction {
   constructor(
     client: ShoukoClient,
     context: Message | CommandInteraction | UserContextMenuCommandInteraction,
-    _options: Array<ApplicationCommandOptionData>,
+    _options: ApplicationCommandOptionData[],
   ) {
     this.client = client;
     this.context = context;
@@ -71,31 +71,37 @@ export class ShoukoInteraction {
       this.commandName = (this.context as CommandInteraction).commandName;
     } else if (this.isUserContext(context)) {
       this.commandName = (this.context as UserContextMenuCommandInteraction).commandName;
-      this.targetUser = (this.context as UserContextMenuCommandInteraction).targetUser as User | undefined;
-      this.targetMember = (this.context as UserContextMenuCommandInteraction).targetMember as GuildMember | undefined;
+      this.targetUser = (this.context as UserContextMenuCommandInteraction).targetUser as
+        | User
+        | undefined;
+      this.targetMember = (this.context as UserContextMenuCommandInteraction).targetMember as
+        | GuildMember
+        | undefined;
       this.targetId = this.targetId = (this.context as UserContextMenuCommandInteraction).targetId;
     } else {
       this.commandName = parseRawArgs(context.content.trim().toLowerCase().slice(PREFIX.length))[0];
       const args = parseMessageArgs(
         client,
         parseRawArgs(context.content.trim()).slice(1),
-        _options as ApplicationCommandOptionData[],
+        _options,
       );
       this.options = args;
       if (process.env.DEBUG_MODE)
-        client.logger.info(`HybridCommandArgs [${this.commandName} (${this.user.username})]: ` + JSON.stringify(args));
+        client.logger.info(
+          `HybridCommandArgs [${this.commandName} (${this.user.username})]: ` +
+            JSON.stringify(args),
+        );
     }
   }
   inGuild(): boolean {
-    return this.context.guild != null;
+    return this.context.guild !== null;
   }
 
   getUser(): User {
     if ("author" in this.context) {
       return this.context.author;
-    } else {
-      return this.context.user;
     }
+    return this.context.user;
   }
 
   getChannel(): TextBasedChannel | null {
@@ -144,11 +150,14 @@ export class ShoukoInteraction {
     return "targetUser" in context;
   }
 
-  getOption<T extends CommandOptionValue>(name: string): T | null {
+  getOption<T extends CommandOptionValue>(name: string): T | null | boolean {
     if (this.isInteraction(this.context)) {
       const option =
-        this?.options != null ? (this.options as CommandInteractionOptionResolver<CacheType>).get(name) : null;
+        this?.options !== null
+          ? (this.options as CommandInteractionOptionResolver<CacheType>).get(name)
+          : null;
       if (!option) return null;
+
       // Type checking based on ApplicationCommandOptionType
       switch (option.type) {
         case ApplicationCommandOptionType.User:
@@ -159,6 +168,8 @@ export class ShoukoInteraction {
           return option.value as T; // string
         case ApplicationCommandOptionType.Channel:
           return option.channel as T;
+        case ApplicationCommandOptionType.Subcommand:
+          return option !== null && option.name === name;
         default:
           return null;
       }
@@ -187,19 +198,18 @@ export class ShoukoInteraction {
     content: MessageCreateOptions | MessagePayload | InteractionReplyOptions,
   ): Promise<InteractionResponse<boolean> | Message<boolean>> {
     if (this.isInteraction(this.context)) {
-      if (!(this.context.replied || this.context.deferred)) throw new Error("Interaction not replied yet.");
-      return await this.context.followUp(content as InteractionReplyOptions);
+      if (!(this.context.replied || this.context.deferred))
+        throw new Error("Interaction not replied yet.");
+      return this.context.followUp(content as InteractionReplyOptions);
     } else if (this.isMessage(this.context)) {
       if (this.message) {
         (content as MessageCreateOptions).allowedMentions = { repliedUser: false };
-        return await this.message.edit(content as MessagePayload);
-      } else {
-        (content as MessageCreateOptions).allowedMentions = { repliedUser: false };
-        return await this.context.reply(content as MessageCreateOptions);
+        return this.message.edit(content as MessagePayload);
       }
-    } else {
-      throw new Error("Cannot followUp to the command context");
+      (content as MessageCreateOptions).allowedMentions = { repliedUser: false };
+      return this.context.reply(content as MessageCreateOptions);
     }
+    throw new Error("Cannot followUp to the command context");
   }
 
   async deferReply(
@@ -207,37 +217,33 @@ export class ShoukoInteraction {
   ): Promise<InteractionResponse<boolean> | Message<boolean>> {
     if (this.isInteraction(this.context)) {
       if (!this.context.isRepliable()) throw new Error("Interaction has already been replied.");
-      return await this.context.deferReply(content as InteractionReplyOptions);
+      return this.context.deferReply(content as InteractionReplyOptions);
     } else if (this.isMessage(this.context)) {
       (content as MessageCreateOptions).content = "Shouko is thinking..";
       (content as MessageCreateOptions).allowedMentions = { repliedUser: false };
       this.message = await this.context.reply(content as MessageCreateOptions);
       return this.message;
-    } else {
-      throw new Error("Cannot editReply to the command context");
     }
+    throw new Error("Cannot editReply to the command context");
   }
 
-  async editReply(content: MessageCreateOptions | MessagePayload | InteractionReplyOptions): Promise<Message<boolean>> {
+  async editReply(
+    content: MessageCreateOptions | MessagePayload | InteractionReplyOptions,
+  ): Promise<Message<boolean>> {
     if (this.isInteraction(this.context)) {
-      if (!(this.context.replied || this.context.deferred)) throw new Error("Interaction not replied yet.");
-      return await this.context.editReply(content as InteractionReplyOptions);
+      if (!(this.context.replied || this.context.deferred))
+        throw new Error("Interaction not replied yet.");
+      return this.context.editReply(content as InteractionReplyOptions);
     } else if (this.isMessage(this.context)) {
       if (!this.message) throw new Error("Interaction not replied yet.");
       (content as MessageCreateOptions).allowedMentions = { repliedUser: false };
-      return await this.message.edit(content as MessagePayload);
-    } else {
-      throw new Error("Cannot editReply to the command context");
+      return this.message.edit(content as MessagePayload);
     }
+    throw new Error("Cannot editReply to the command context");
   }
 }
-/**
- * Type-safe utility for converting arguments.
- * This type represents an object where the keys are strings and the values are of type CommandOptionValue.
- */
-export type ParsedOptions = { [key: string]: CommandOptionValue };
 
-function parseRawArgs(input: string): Array<string> {
+function parseRawArgs(input: string): string[] {
   const regex = /\[\[(.*?)\]\]|(\S+)/g;
   const args = [];
   let match;
@@ -255,7 +261,7 @@ const parseMessageArgs = (
 ): ParsedOptions => {
   const options: ParsedOptions = {};
   try {
-    (commandOptions as Array<ApplicationCommandOptionData>).forEach((option, index) => {
+    commandOptions.forEach((option, index) => {
       const arg = args[index];
       if ((option as { required: boolean }).required && (arg === undefined || arg === null))
         throw new Error("Missing required arguments: " + option.name);
@@ -268,87 +274,66 @@ const parseMessageArgs = (
               break;
             }
             const userId = arg.replace(/([^0-9]+)/g, "");
-            options[option.name] = client.users.cache.get(userId) || client.users.fetch(userId); // Example parse function
+            options[option.name] = client.users.cache.get(userId) ?? client.users.fetch(userId); // Example parse function
           }
           break;
         case ApplicationCommandOptionType.Channel:
           const channelId = arg.replace(/([^0-9]+)/g, "");
-          options[option.name] = client.channels.cache.get(channelId) || client.channels.fetch(channelId);
+          options[option.name] =
+            client.channels.cache.get(channelId) ?? client.channels.fetch(channelId);
         case ApplicationCommandOptionType.Boolean:
           options[option.name] = arg ? arg.toLowerCase() === "true" : false;
           break;
         case ApplicationCommandOptionType.String:
-          options[option.name] = arg || null;
+          options[option.name] = arg ?? null;
           break;
-        case ApplicationCommandOptionType.Channel:
-
+        case ApplicationCommandOptionType.Subcommand:
+          options[option.name] = arg && arg.toLowerCase() === option.name ? true : null;
+          break;
         default:
           options[option.name] = null; // Handle other types as needed
           break;
       }
     });
-  } catch (err: any) {
-    client.logger.error("ParseMessageArgs " + err);
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      client.logger.error("ParseMessageArgs " + err.message);
+    }
     return {};
   }
   return options;
 };
 
-export interface Command extends ChatInputApplicationCommandData, ShoukoBaseCommand {
-  run: (_client: ShoukoClient, _interaction: ShoukoInteraction) => void;
-  autocomplete?: (_client: ShoukoClient, _interaction: AutocompleteInteraction) => void;
-}
+let Commands: Command[] = [];
 
-export interface UserCommand extends UserApplicationCommandData, ShoukoBaseCommand {
-  run: (_client: ShoukoClient, _interaction: ShoukoInteraction) => void;
-}
+let UserCommands: UserCommand[] = [];
 
-export interface MessageCommand extends MessageApplicationCommandData, ShoukoBaseCommand {
-  run: (_client: ShoukoClient, _interaction: MessageContextMenuCommandInteraction) => void;
-}
+let MessageCommands: MessageCommand[] = [];
 
-let Commands: Array<Command> = [];
-
-let UserCommands: Array<UserCommand> = [];
-
-let MessageCommands: Array<MessageCommand> = [];
-
-export interface setCommands {
-  (commands: Array<Command>): void;
-}
-
-export interface setUserCommands {
-  (commands: Array<UserCommand>): void;
-}
-
-export interface setMessageCommands {
-  (commands: Array<MessageCommand>): void;
-}
-
-export interface getCommands {
-  (): Array<Command>;
-}
-
-export interface getUserCommands {
-  (): Array<UserCommand>;
-}
-
-export interface getMessageCommands {
-  (): Array<MessageCommand>;
-}
-
-export const setCommands: setCommands = (commands: Array<Command>) => {
+export const setCommands: setCommands = (commands: Command[]) => {
   Commands = commands;
 };
 
-export const setUserCommands: setUserCommands = (commands: Array<UserCommand>) => {
+export const setUserCommands: setUserCommands = (commands: UserCommand[]) => {
   UserCommands = commands;
 };
 
-export const setMessageCommands: setMessageCommands = (commands: Array<MessageCommand>) => {
+export const setMessageCommands: setMessageCommands = (commands: MessageCommand[]) => {
   MessageCommands = commands;
 };
 
-export const getCommands: getCommands = (): Array<Command> => Commands;
-export const getUserCommands: getUserCommands = (): Array<UserCommand> => UserCommands;
-export const getMessageCommands: getMessageCommands = (): Array<MessageCommand> => MessageCommands;
+export const getCommands: getCommands = (): Command[] => Commands;
+export const getUserCommands: getUserCommands = (): UserCommand[] => UserCommands;
+export const getMessageCommands: getMessageCommands = (): MessageCommand[] => MessageCommands;
+
+export type setCommands = (commands: Command[]) => void;
+
+export type setUserCommands = (commands: UserCommand[]) => void;
+
+export type setMessageCommands = (commands: MessageCommand[]) => void;
+
+export type getCommands = () => Command[];
+
+export type getUserCommands = () => UserCommand[];
+
+export type getMessageCommands = () => MessageCommand[];

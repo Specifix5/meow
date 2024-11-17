@@ -1,53 +1,79 @@
 import fs from "fs";
-import { ShoukoClient } from "./shouko/client";
-import { Command, MessageCommand, UserCommand } from "./shouko/command";
+import { ShoukoClient } from "./shouko/client.js";
+import { Command, MessageCommand, UserCommand } from "./shouko/command.js";
 import path from "path";
+import { CommandModule, ListenerModule } from "./types.js";
+import { pathToFileURL } from "url";
 
-export default (client: ShoukoClient) => {
-  const commandFolder = path.join(__dirname, "..", "commands");
-  const listenerFolder = path.join(__dirname, "..", "listeners");
-  const loadedListeners: Array<string> = [];
-  const loadedCommands: Array<Command | UserCommand | MessageCommand> = [];
+export default async (client: ShoukoClient) => {
+  const commandFolder = path.join(import.meta.dirname, "..", "commands");
+  const listenerFolder = path.join(import.meta.dirname, "..", "listeners");
+  client.logger.info(commandFolder);
+  const loadedListeners: string[] = [];
+  const loadedCommands: (Command | UserCommand | MessageCommand)[] = [];
 
-  fs.readdirSync(commandFolder).map((dir) => {
-    if (fs.statSync(path.join(commandFolder, dir)).isDirectory()) {
-      fs.readdirSync(path.join(commandFolder, dir)).map((file) => {
-        if (file.endsWith(".js") || file.endsWith(".ts")) {
-          const moduleName = file.replace(/\.(ts|js)$/, "");
-          const cPath = path.join(commandFolder, dir, moduleName + ".js");
-          import(cPath).then((command) => {
-            try {
-              if (!command.default) throw new Error("There is no export for this command module.");
-              loadedCommands.push(...command.default);
-            } catch (err: any) {
-              client.logger.error("Unable to load command module " + moduleName + ": " + err);
+  await Promise.all(
+    fs.readdirSync(commandFolder).map(async (dir) => {
+      if (fs.statSync(path.join(commandFolder, dir)).isDirectory()) {
+        const categoryName = dir[0].toUpperCase() + dir.slice(1);
+        client.commandCategories.push(categoryName);
+
+        await Promise.all(
+          fs.readdirSync(path.join(commandFolder, dir)).map(async (file) => {
+            if (file.endsWith(".js") || file.endsWith(".ts")) {
+              const moduleName = file.replace(/\.(ts|js)$/, "");
+              const cPath = pathToFileURL(path.join(commandFolder, dir, moduleName + ".js")).href;
+              try {
+                const command: CommandModule = (await import(cPath)) as CommandModule;
+                if (!command.default)
+                  throw new Error("There is no export for this command module.");
+                if (Array.isArray(command.default)) {
+                  command.default.forEach((cmd: Command | UserCommand | MessageCommand) => {
+                    cmd.category = categoryName;
+                    loadedCommands.push(cmd);
+                  });
+                } else {
+                  const cmd = command.default;
+                  cmd.category = categoryName;
+                  loadedCommands.push(cmd);
+                }
+              } catch (err: unknown) {
+                client.logger.error(
+                  "Unable to load command module " + moduleName + ": " + String(err),
+                );
+              }
             }
-          });
-        }
-      });
-    }
-  });
+          }),
+        );
+      }
+    }),
+  );
 
-  fs.readdirSync(listenerFolder).map((file) => {
-    if (file.endsWith(".js") || file.endsWith(".ts")) {
-      const moduleName = file.replace(/\.(ts|js)$/, "");
-      const lPath = path.join(listenerFolder, moduleName + ".js");
-      import(lPath).then((listener) => {
+  await Promise.all(
+    fs.readdirSync(listenerFolder).map(async (file) => {
+      if (file.endsWith(".js") || file.endsWith(".ts")) {
+        const moduleName = file.replace(/\.(ts|js)$/, "");
+        const lPath = pathToFileURL(path.join(listenerFolder, moduleName + ".js")).href;
+        const listenerModule: ListenerModule = (await import(lPath)) as ListenerModule;
         try {
           switch (moduleName) {
             case "ready":
-              listener.default(client, loadedCommands);
+              listenerModule.default(client, loadedCommands);
               break;
             default:
-              listener.default(client);
+              listenerModule.default(client);
               break;
           }
 
           loadedListeners.push(moduleName);
-        } catch (err: any) {
-          client.logger.error("Unable to load listener module " + moduleName + ": " + err);
+        } catch (err: unknown) {
+          if (err instanceof Error) {
+            client.logger.error(
+              "Unable to load listener module " + moduleName + ": " + err.message,
+            );
+          }
         }
-      });
-    }
-  });
+      }
+    }),
+  );
 };

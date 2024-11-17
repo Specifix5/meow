@@ -5,46 +5,60 @@ import {
   AutocompleteInteraction,
   Interaction,
 } from "discord.js";
-import { CreateErrorMessage } from "../utils/logging";
-import { ShoukoClient } from "../utils/shouko/client";
-import { ShoukoInteraction } from "../utils/shouko/command";
+import { CreateErrorMessage } from "../utils/logging.js";
+import { ShoukoClient } from "../utils/shouko/client.js";
+import { ShoukoInteraction } from "../utils/shouko/command.js";
+import { EMOJI } from "../utils/constants.js";
 
 export const interactionErrorHandler = async (
   interaction: CommandInteraction | UserContextMenuCommandInteraction,
-  err: any,
+  err: unknown,
 ) => {
-  if (interaction.replied || interaction.deferred) {
-    await interaction.followUp({
-      content: CreateErrorMessage(err),
-      ephemeral: true,
-    });
-  } else {
-    await interaction.reply({
-      content: CreateErrorMessage(err),
-      ephemeral: true,
-    });
+  if (err instanceof Error) {
+    if (interaction.replied || interaction.deferred) {
+      await interaction.followUp({
+        content: CreateErrorMessage(err),
+        ephemeral: true,
+      });
+    } else {
+      await interaction.reply({
+        content: CreateErrorMessage(err),
+        ephemeral: true,
+      });
+    }
   }
 };
 
-const slashCommandHandler = async (client: ShoukoClient, interaction: CommandInteraction): Promise<void> => {
+const slashCommandHandler = async (
+  client: ShoukoClient,
+  interaction: CommandInteraction,
+): Promise<void> => {
   const _command = client.getCommands().find((c) => c.name === interaction.commandName);
   if (!_command) {
-    await interaction.reply(
-      CreateErrorMessage(new Error("No matching command by the name '" + interaction.commandName + "'")),
-    );
-    return;
-  } else {
-    try {
-      await _command.run(
-        client,
-        new ShoukoInteraction(client, interaction, _command.options as ApplicationCommandOptionData[]),
-      );
-    } catch (err: any) {
-      client.logger.error("[SlashCommands] " + err);
-      await interactionErrorHandler(interaction, err);
-    }
+    await interaction.reply({
+      content: `${EMOJI.ICON_DENY} ${CreateErrorMessage(
+        new Error("No matching command by the name '" + interaction.commandName + "'"),
+      )}`,
+      ephemeral: true,
+    });
     return;
   }
+  try {
+    await _command.run(
+      client,
+      new ShoukoInteraction(
+        client,
+        interaction,
+        _command.options as ApplicationCommandOptionData[],
+      ),
+    );
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+      client.logger.error("[SlashCommands] " + err.message);
+      await interactionErrorHandler(interaction, err);
+    }
+  }
+  return;
 };
 
 const commandAutocompleteHandler = async (
@@ -52,11 +66,13 @@ const commandAutocompleteHandler = async (
   interaction: AutocompleteInteraction,
 ): Promise<void> => {
   const _command = client.getCommands().find((c) => c.name === interaction.commandName);
-  if (_command && _command.autocomplete) {
+  if (_command?.autocomplete) {
     try {
       await _command.autocomplete(client, interaction);
-    } catch (err: any) {
-      client.logger.error("[SlashCommands/Autocomplete] " + err);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        client.logger.error("[SlashCommands/Autocomplete] " + err.message);
+      }
     }
     return;
   }
@@ -70,22 +86,26 @@ const commandUserContextHandler = async (
   if (_command) {
     try {
       await _command.run(client, new ShoukoInteraction(client, interaction, []));
-    } catch (err: any) {
-      client.logger.error("[UserCommands] " + err);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        client.logger.error("[UserCommands] " + err.message);
+      }
       await interactionErrorHandler(interaction, err);
     }
     return;
   }
 };
 
+const interactionCreate = async (client: ShoukoClient, interaction: Interaction) => {
+  if (interaction.isChatInputCommand()) {
+    await slashCommandHandler(client, interaction);
+  } else if (interaction.isAutocomplete()) {
+    await commandAutocompleteHandler(client, interaction);
+  } else if (interaction.isUserContextMenuCommand()) {
+    await commandUserContextHandler(client, interaction);
+  }
+};
+
 export default (client: ShoukoClient) => {
-  client.on("interactionCreate", async (interaction: Interaction) => {
-    if (interaction.isChatInputCommand()) {
-      await slashCommandHandler(client, interaction);
-    } else if (interaction.isAutocomplete()) {
-      await commandAutocompleteHandler(client, interaction);
-    } else if (interaction.isUserContextMenuCommand()) {
-      await commandUserContextHandler(client, interaction);
-    }
-  });
+  client.on("interactionCreate", (i: Interaction) => void interactionCreate(client, i));
 };
