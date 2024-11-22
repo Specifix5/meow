@@ -1,4 +1,4 @@
-# maidbot
+# meowbot
 
 A multi-purpose, all-in-one discord bot \
 ⚠️ (code is very :sob:)
