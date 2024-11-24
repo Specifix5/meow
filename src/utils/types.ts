@@ -1,13 +1,13 @@
 import { Attachment, Channel, GuildMember, User } from "discord.js";
-import { ShoukoClient } from "./shouko/client.js";
-import { Command, MessageCommand, UserCommand } from "./shouko/command.js";
+import { MeowClient } from "./nyan/client.js";
+import { Command, MessageCommand, UserCommand } from "./nyan/command.js";
 
 export interface CommandModule {
   default: Command | UserCommand | MessageCommand | (Command | UserCommand | MessageCommand)[];
 }
 
 export interface ListenerModule {
-  default: (client: ShoukoClient, commands?: (Command | UserCommand | MessageCommand)[]) => void;
+  default: (client: MeowClient, commands?: (Command | UserCommand | MessageCommand)[]) => void;
 }
 
 /**
@@ -41,4 +41,12 @@ export enum TranslateApplicationCommandOptionType {
   "mentionable",
   "number",
   "attachment",
+}
+
+export interface APIActionRequestResult {
+  url: string;
+  anime_name: string;
+}
+export interface APIActionResult {
+  results: APIActionRequestResult[];
 }

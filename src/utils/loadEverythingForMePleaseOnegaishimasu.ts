@@ -1,14 +1,13 @@
 import fs from "fs";
-import { ShoukoClient } from "./shouko/client.js";
-import { Command, MessageCommand, UserCommand } from "./shouko/command.js";
+import { MeowClient } from "./nyan/client.js";
+import { Command, MessageCommand, UserCommand } from "./nyan/command.js";
 import path from "path";
 import { CommandModule, ListenerModule } from "./types.js";
 import { pathToFileURL } from "url";
 
-export default async (client: ShoukoClient) => {
+export default async (client: MeowClient) => {
   const commandFolder = path.join(import.meta.dirname, "..", "commands");
   const listenerFolder = path.join(import.meta.dirname, "..", "listeners");
-  client.logger.info(commandFolder);
   const loadedListeners: string[] = [];
   const loadedCommands: (Command | UserCommand | MessageCommand)[] = [];
 
@@ -54,8 +53,9 @@ export default async (client: ShoukoClient) => {
       if (file.endsWith(".js") || file.endsWith(".ts")) {
         const moduleName = file.replace(/\.(ts|js)$/, "");
         const lPath = pathToFileURL(path.join(listenerFolder, moduleName + ".js")).href;
-        const listenerModule: ListenerModule = (await import(lPath)) as ListenerModule;
+        client.logger.info("Loading listener module " + moduleName);
         try {
+          const listenerModule: ListenerModule = (await import(lPath)) as ListenerModule;
           switch (moduleName) {
             case "ready":
               listenerModule.default(client, loadedCommands);

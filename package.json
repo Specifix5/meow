@@ -1,10 +1,10 @@
 {
-  "name": "maidbot",
+  "name": "meowbot",
   "version": "0.1.7-alpha",
   "main": "./dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "npx tsc && node ./dist/index.js",
+    "clean": "node ./build-tools/compileSrc.mjs",
+    "dev": "node ./build-tools/compileSrc.mjs --compile && node ./dist/index.js",
     "start": "echo \"Running on Production!\" && node ./dist/index.js"
   },
   "keywords": [],

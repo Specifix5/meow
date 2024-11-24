@@ -9,7 +9,7 @@ import {
   setUserCommands,
 } from "./command.js";
 
-export class ShoukoClient extends Client {
+export class MeowClient extends Client {
   logger: Logger;
   getString: GetString;
   setCommands: setCommands;

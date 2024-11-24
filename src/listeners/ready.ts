@@ -1,11 +1,8 @@
 import { ApplicationCommand, ApplicationCommandType, OAuth2Guild } from "discord.js";
-import { ShoukoClient } from "../utils/shouko/client.js";
-import { Command, MessageCommand, UserCommand } from "../utils/shouko/command.js";
+import { MeowClient } from "../utils/nyan/client.js";
+import { Command, MessageCommand, UserCommand } from "../utils/nyan/command.js";
 
-const ready = async (
-  client: ShoukoClient,
-  commands: (Command | UserCommand | MessageCommand)[],
-) => {
+const ready = async (client: MeowClient, commands: (Command | UserCommand | MessageCommand)[]) => {
   await client.application?.commands.set(commands).then((cmd) => {
     const slashCommands: Command[] = [];
     const userCommands: UserCommand[] = [];
@@ -46,6 +43,6 @@ const ready = async (
   );
 };
 
-export default (client: ShoukoClient, commands: (Command | UserCommand | MessageCommand)[]) => {
+export default (client: MeowClient, commands: (Command | UserCommand | MessageCommand)[]) => {
   client.on("ready", () => void ready(client, commands));
 };

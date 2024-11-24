@@ -6,8 +6,8 @@ import {
   Interaction,
 } from "discord.js";
 import { CreateErrorMessage } from "../utils/logging.js";
-import { ShoukoClient } from "../utils/shouko/client.js";
-import { ShoukoInteraction } from "../utils/shouko/command.js";
+import { MeowClient } from "../utils/nyan/client.js";
+import { MeowInteraction } from "../utils/nyan/command.js";
 import { EMOJI } from "../utils/constants.js";
 
 export const interactionErrorHandler = async (
@@ -30,7 +30,7 @@ export const interactionErrorHandler = async (
 };
 
 const slashCommandHandler = async (
-  client: ShoukoClient,
+  client: MeowClient,
   interaction: CommandInteraction,
 ): Promise<void> => {
   const _command = client.getCommands().find((c) => c.name === interaction.commandName);
@@ -46,11 +46,7 @@ const slashCommandHandler = async (
   try {
     await _command.run(
       client,
-      new ShoukoInteraction(
-        client,
-        interaction,
-        _command.options as ApplicationCommandOptionData[],
-      ),
+      new MeowInteraction(client, interaction, _command.options as ApplicationCommandOptionData[]),
     );
   } catch (err: unknown) {
     if (err instanceof Error) {
@@ -62,7 +58,7 @@ const slashCommandHandler = async (
 };
 
 const commandAutocompleteHandler = async (
-  client: ShoukoClient,
+  client: MeowClient,
   interaction: AutocompleteInteraction,
 ): Promise<void> => {
   const _command = client.getCommands().find((c) => c.name === interaction.commandName);
@@ -79,13 +75,13 @@ const commandAutocompleteHandler = async (
 };
 
 const commandUserContextHandler = async (
-  client: ShoukoClient,
+  client: MeowClient,
   interaction: UserContextMenuCommandInteraction,
 ): Promise<void> => {
   const _command = client.getUserCommands().find((c) => c.name === interaction.commandName);
   if (_command) {
     try {
-      await _command.run(client, new ShoukoInteraction(client, interaction, []));
+      await _command.run(client, new MeowInteraction(client, interaction, []));
     } catch (err: unknown) {
       if (err instanceof Error) {
         client.logger.error("[UserCommands] " + err.message);
@@ -96,7 +92,7 @@ const commandUserContextHandler = async (
   }
 };
 
-const interactionCreate = async (client: ShoukoClient, interaction: Interaction) => {
+const interactionCreate = async (client: MeowClient, interaction: Interaction) => {
   if (interaction.isChatInputCommand()) {
     await slashCommandHandler(client, interaction);
   } else if (interaction.isAutocomplete()) {
@@ -106,6 +102,6 @@ const interactionCreate = async (client: ShoukoClient, interaction: Interaction)
   }
 };
 
-export default (client: ShoukoClient) => {
+export default (client: MeowClient) => {
   client.on("interactionCreate", (i: Interaction) => void interactionCreate(client, i));
 };

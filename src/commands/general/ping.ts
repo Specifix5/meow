@@ -3,8 +3,8 @@ import {
   UniversalContextType,
   UniversalIntegrationType,
 } from "../../utils/constants.js";
-import { ShoukoClient } from "../../utils/shouko/client.js";
-import { Command, ShoukoInteraction } from "../../utils/shouko/command.js";
+import { MeowClient } from "../../utils/nyan/client.js";
+import { Command, MeowInteraction } from "../../utils/nyan/command.js";
 
 const PingCommand: Command = {
   name: "ping",
@@ -12,9 +12,14 @@ const PingCommand: Command = {
   contexts: UniversalContextType,
   integrationTypes: UniversalIntegrationType,
   options: [EphmeralCommandOption],
-  run: async (_client: ShoukoClient, interaction: ShoukoInteraction) => {
+  run: async (client: MeowClient, interaction: MeowInteraction) => {
     await interaction.reply({
-      content: "meow",
+      content:
+        "meow!!! " +
+        client
+          .getCommands()
+          .map((cmd) => `\`${cmd.name}: ${cmd.category}\``)
+          .join(", "),
       ephemeral: interaction.getOption<boolean>("ephmeral") ?? false,
     });
   },

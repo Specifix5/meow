@@ -22,7 +22,7 @@ import {
   UserContextMenuCommandInteraction,
 } from "discord.js";
 import { PREFIX } from "../constants.js";
-import { ShoukoClient } from "./client.js";
+import { MeowClient } from "./client.js";
 import { ParsedOptions, CommandOptionValue } from "../types.js";
 
 export interface BaseCommand extends BaseApplicationCommandData {
@@ -30,20 +30,20 @@ export interface BaseCommand extends BaseApplicationCommandData {
   id?: string;
 }
 export interface Command extends ChatInputApplicationCommandData, BaseCommand {
-  run: (_client: ShoukoClient, _interaction: ShoukoInteraction) => Promise<void>;
-  autocomplete?: (_client: ShoukoClient, _interaction: AutocompleteInteraction) => Promise<void>;
+  run: (_client: MeowClient, _interaction: MeowInteraction) => Promise<void>;
+  autocomplete?: (_client: MeowClient, _interaction: AutocompleteInteraction) => Promise<void>;
 }
 
 export interface UserCommand extends UserApplicationCommandData, BaseCommand {
-  run: (_client: ShoukoClient, _interaction: ShoukoInteraction) => Promise<void>;
+  run: (_client: MeowClient, _interaction: MeowInteraction) => Promise<void>;
 }
 
 export interface MessageCommand extends MessageApplicationCommandData, BaseCommand {
-  run: (_client: ShoukoClient, _interaction: MessageContextMenuCommandInteraction) => Promise<void>;
+  run: (_client: MeowClient, _interaction: MessageContextMenuCommandInteraction) => Promise<void>;
 }
 
-export class ShoukoInteraction {
-  client: ShoukoClient;
+export class MeowInteraction {
+  client: MeowClient;
   context: Message | CommandInteraction | UserContextMenuCommandInteraction;
   options?: CommandInteractionOptionResolver<CacheType> | ParsedOptions;
   guild: Guild | null;
@@ -56,7 +56,7 @@ export class ShoukoInteraction {
   targetId?: string;
 
   constructor(
-    client: ShoukoClient,
+    client: MeowClient,
     context: Message | CommandInteraction | UserContextMenuCommandInteraction,
     _options: ApplicationCommandOptionData[],
   ) {
@@ -150,7 +150,7 @@ export class ShoukoInteraction {
     return "targetUser" in context;
   }
 
-  getOption<T extends CommandOptionValue>(name: string): T | null | boolean {
+  getOption<T extends CommandOptionValue>(name: string): T | null {
     if (this.isInteraction(this.context)) {
       const option =
         this?.options !== null
@@ -169,7 +169,7 @@ export class ShoukoInteraction {
         case ApplicationCommandOptionType.Channel:
           return option.channel as T;
         case ApplicationCommandOptionType.Subcommand:
-          return option !== null && option.name === name;
+          return option.name as T;
         default:
           return null;
       }
@@ -194,6 +194,19 @@ export class ShoukoInteraction {
     }
   }
 
+  /**
+   * Sends a follow-up message to the interaction or command context.
+   *
+   * If the context is an interaction and it has not been replied yet, it throws an error.
+   *
+   * If the context is a message and it has already been replied to, it edits the existing message.
+   * Otherwise, it sends a new reply to the message.
+   *
+   * If the context is neither an interaction nor a message, it throws an error.
+   *
+   * @param content The content of the message.
+   * @returns The sent message or interaction response.
+   */
   async followUp(
     content: MessageCreateOptions | MessagePayload | InteractionReplyOptions,
   ): Promise<InteractionResponse<boolean> | Message<boolean>> {
@@ -212,6 +225,17 @@ export class ShoukoInteraction {
     throw new Error("Cannot followUp to the command context");
   }
 
+  /**
+   * Sends a deferred reply to the interaction or command context.
+   *
+   * If the context is an interaction and it has already been replied to, it throws an error.
+   *
+   * If the context is a message, it sends a new reply to the message with the content of "Meow is thinking..".
+   * Otherwise, it throws an error.
+   *
+   * @param content The content of the message.
+   * @returns The sent message or interaction response.
+   */
   async deferReply(
     content: MessageCreateOptions | MessagePayload | InteractionReplyOptions,
   ): Promise<InteractionResponse<boolean> | Message<boolean>> {
@@ -219,7 +243,7 @@ export class ShoukoInteraction {
       if (!this.context.isRepliable()) throw new Error("Interaction has already been replied.");
       return this.context.deferReply(content as InteractionReplyOptions);
     } else if (this.isMessage(this.context)) {
-      (content as MessageCreateOptions).content = "Shouko is thinking..";
+      (content as MessageCreateOptions).content = "Meow is thinking..";
       (content as MessageCreateOptions).allowedMentions = { repliedUser: false };
       this.message = await this.context.reply(content as MessageCreateOptions);
       return this.message;
@@ -243,7 +267,7 @@ export class ShoukoInteraction {
   }
 }
 
-function parseRawArgs(input: string): string[] {
+const parseRawArgs = (input: string): string[] => {
   const regex = /\[\[(.*?)\]\]|(\S+)/g;
   const args = [];
   let match;
@@ -252,15 +276,16 @@ function parseRawArgs(input: string): string[] {
     args.push(match[1] || match[2]);
   }
   return args;
-}
+};
 
 const parseMessageArgs = (
-  client: ShoukoClient,
+  client: MeowClient,
   args: string[],
   commandOptions: ApplicationCommandOptionData[],
 ): ParsedOptions => {
   const options: ParsedOptions = {};
   try {
+    if (!commandOptions) commandOptions = [];
     commandOptions.forEach((option, index) => {
       const arg = args[index];
       if ((option as { required: boolean }).required && (arg === undefined || arg === null))
@@ -274,13 +299,18 @@ const parseMessageArgs = (
               break;
             }
             const userId = arg.replace(/([^0-9]+)/g, "");
-            options[option.name] = client.users.cache.get(userId) ?? client.users.fetch(userId); // Example parse function
+            const isValid = /^[0-9]+$/.test(userId);
+            options[option.name] = isValid
+              ? (client.users.cache.get(userId) ?? client.users.fetch(userId))
+              : null;
           }
           break;
         case ApplicationCommandOptionType.Channel:
           const channelId = arg.replace(/([^0-9]+)/g, "");
-          options[option.name] =
-            client.channels.cache.get(channelId) ?? client.channels.fetch(channelId);
+          const isValid = /^[0-9]+$/.test(channelId);
+          options[option.name] = isValid
+            ? (client.channels.cache.get(channelId) ?? client.channels.fetch(channelId))
+            : null;
         case ApplicationCommandOptionType.Boolean:
           options[option.name] = arg ? arg.toLowerCase() === "true" : false;
           break;

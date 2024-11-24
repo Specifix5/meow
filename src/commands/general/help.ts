@@ -5,6 +5,7 @@ import {
   AutocompleteInteraction,
 } from "discord.js";
 import {
+  COMMAND_PADDED_BOX_LENGTH,
   EMOJI,
   EphmeralCommandOption,
   NAME,
@@ -13,9 +14,9 @@ import {
   UniversalIntegrationType,
 } from "../../utils/constants.js";
 import { TranslateApplicationCommandOptionType } from "../../utils/types.js";
-import { Command, ShoukoInteraction } from "../../utils/shouko/command.js";
-import { ShoukoClient } from "../../utils/shouko/client.js";
-import { ShoukoEmbed } from "../../utils/shouko/embed.js";
+import { Command, MeowInteraction } from "../../utils/nyan/command.js";
+import { MeowClient } from "../../utils/nyan/client.js";
+import { MeowEmbed } from "../../utils/nyan/embed.js";
 import { CreateErrorMessage } from "../../utils/logging.js";
 
 const sortByOptions = (commands: Command[]) => {
@@ -24,6 +25,10 @@ const sortByOptions = (commands: Command[]) => {
     const opt_b = b.options ? b.options.length : 0;
     return opt_b - opt_a;
   });
+};
+
+const paddedBox = (text: string): string => {
+  return `\` ${text.padEnd(COMMAND_PADDED_BOX_LENGTH, " ")} \``;
 };
 
 const HelpCommand: Command = {
@@ -40,8 +45,8 @@ const HelpCommand: Command = {
     },
     EphmeralCommandOption,
   ],
-  run: async (client: ShoukoClient, interaction: ShoukoInteraction) => {
-    const helpEmbed = new ShoukoEmbed()
+  run: async (client: MeowClient, interaction: MeowInteraction) => {
+    const helpEmbed = new MeowEmbed()
       .setTitle(`${NAME} — Help Page`)
       .setDescription(
         `${EMOJI.ICON_SLASH} **Prefix:** \`\`${PREFIX}\`\`\n` +
@@ -56,11 +61,10 @@ const HelpCommand: Command = {
           (command: Command) => {
             let commandString = `</${command.name}:${command.id}>`;
             let noSubcommand = false;
-            if ((command.options && command.options.length <= 0) || !command.options)
-              return commandString;
+            if ((command.options && command.options.length < 1) || !command.options)
+              return commandList.push(commandString);
 
             command.options?.map((option: ApplicationCommandOptionData) => {
-              if (option.name === "ephmeral") return;
               if (option.type === ApplicationCommandOptionType.Subcommand) {
                 commandString = `</${command.name} ${option.name}:${command.id}> ${
                   option.options
@@ -72,6 +76,7 @@ const HelpCommand: Command = {
                 commandList.push(commandString);
               } else {
                 noSubcommand = true;
+                if (option.name === "ephmeral") return;
                 commandString += ` \`(${option.name})\``;
               }
             });
@@ -81,7 +86,12 @@ const HelpCommand: Command = {
         helpEmbed.addFields([
           {
             name: EMOJI.ARROW_RIGHT + " " + category + " Commands",
-            value: commandList.map((cl) => `${EMOJI.ARROW_BRANCH} ${cl}`).join("\n"),
+            value: commandList
+              .map(
+                (cl, index) =>
+                  `${index < commandList.length - 1 ? EMOJI.ARROW_BRANCH : EMOJI.ARROW_BRANCH_END} ${cl}`,
+              )
+              .join("\n"),
           },
         ]);
       });
@@ -107,31 +117,38 @@ const HelpCommand: Command = {
           })
           .join("\n")}`;
 
-      helpEmbed
-        .setTitle(`Showing command '${command.name}'`)
-        .setDescription(
-          `${EMOJI.ICON_SLASH} **Usage:**
+      helpEmbed.setTitle(`Showing command '${command.name}'`).setDescription(
+        `${EMOJI.ICON_SLASH} **Usage:**
           \`\`\`${usageString}\`\`\`
           ${EMOJI.ICON_INFO} **Description:** ${command.description}
           ${EMOJI.ICON_HAMBURGER} **Category:** ${command.category}`,
-        )
-        .addFields(
-          command.options?.map((opt) => {
-            return {
-              name: `${EMOJI.ARROW_RIGHT} **${opt.name}:** \`${TranslateApplicationCommandOptionType[opt.type - 1]}\``,
-              value: `${EMOJI.ARROW_BRANCH} *${opt.description}*`,
-            };
-          }) as APIEmbedField[],
-        );
+      );
+      const fields: APIEmbedField[] =
+        command.options?.map((opt) => {
+          const optionField = {
+            name: `${EMOJI.ARROW_RIGHT} **\`${opt.name}\`:** ${opt.description}`,
+            value: `${
+              opt.type === ApplicationCommandOptionType.Subcommand &&
+              opt.options &&
+              opt.options.length > 0
+                ? `${opt.options.map((opt2, index) => `${index < opt.options!.length - 1 ? EMOJI.ARROW_BRANCH : EMOJI.ARROW_BRANCH_END} ${paddedBox(opt2.name)} ${opt2.description}`).join("\n")}`
+                : " "
+            }`,
+          };
+
+          return optionField;
+        }) ?? [];
+
+      if (fields.length > 0) helpEmbed.setFields(fields);
     }
 
     await interaction.reply({
-      content: client.getString("COMMANDRESPONSE_HELP"),
+      content: client.getString("COMMAND_RESPONSE_HELP"),
       embeds: [helpEmbed],
       ephemeral: interaction.getOption<boolean>("ephmeral") ?? false,
     });
   },
-  autocomplete: async (client: ShoukoClient, interaction: AutocompleteInteraction) => {
+  autocomplete: async (client: MeowClient, interaction: AutocompleteInteraction) => {
     const focusedOption = interaction.options.getFocused(true);
     let choices: string[] = [];
 
