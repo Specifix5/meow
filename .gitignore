@@ -1,5 +1,3 @@
-node_modules
+/target
 .env
-dist
-*.db
-tsconfig.tsbuildinfo
+random_anime.json
