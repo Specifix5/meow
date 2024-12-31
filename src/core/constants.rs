@@ -20,6 +20,8 @@ pub const REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
 
 pub const GIT_HASH: &str = env!("GIT_HASH");
 
+pub const GIT_HASH_LONG: &str = env!("GIT_HASH_LONG");
+
 pub const COMMAND_PREFIX: &str = "m!";
 
 pub struct Messages;
