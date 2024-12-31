@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::{
   core::{
-    constants::{ URL_MEOWBOT_BANNER, VERSION },
+    constants::{ REPOSITORY, URL_MEOWBOT_BANNER, VERSION },
     utils::{ error_handler::send_cmd_error, ranime::get_random_anime },
   },
   random_message,
@@ -172,7 +172,13 @@ pub async fn help(
     fields.push(
       EmbedField::new(
         format!("{} Others", Emojis::ARROW_RIGHT),
-        format!("-# * [img source]({})", src),
+        format!(
+          "-# [{}img source]({}), [{}github repo]({})",
+          Emojis::ICON_IMAGE_FILE,
+          src,
+          Emojis::ICON_GITHUB,
+          REPOSITORY
+        ),
         false
       )
     );

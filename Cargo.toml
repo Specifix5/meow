@@ -2,6 +2,7 @@
 name = "meowbot"
 version = "0.1.7"
 edition = "2021"
+repository = "https://github.com/Specifix5/meow"
 
 [dependencies]
 poise = { git = "https://github.com/serenity-rs/poise.git", branch = "next"}

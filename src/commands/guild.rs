@@ -101,8 +101,8 @@ pub async fn guild_command(
   slash_command,
   prefix_command,
   category = "General",
-  install_context = "Guild",
-  interaction_context = "Guild"
+  install_context = "Guild|User",
+  interaction_context = "Guild|PrivateChannel"
 )]
 pub async fn guild(
   ctx: Context<'_>,
@@ -187,10 +187,16 @@ pub async fn guild(
         }
       }
     } else {
-      send_cmd_error(ctx, "Must be a guild install to use this command".to_owned()).await;
+      send_cmd_error(
+        ctx,
+        "Must be a guild install to use this command, or provide `guild_id` string".to_owned()
+      ).await;
     }
   } else {
-    send_cmd_error(ctx, "Must be in a guild to use this command".to_owned()).await;
+    send_cmd_error(
+      ctx,
+      "Must be in a guild to use this command or provide `guild_id` string".to_owned()
+    ).await;
   }
 
   Ok(())

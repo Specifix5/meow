@@ -16,6 +16,8 @@ pub const APP_NAME: &str = env!("CARGO_PKG_NAME");
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
+pub const REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
+
 pub const COMMAND_PREFIX: &str = "m!";
 
 pub struct Messages;
@@ -57,6 +59,9 @@ impl Emojis {
   pub const ICON_BOOST_LEVEL_1: &str = "<:_:1322530540212981812>";
   pub const ICON_BOOST_LEVEL_2: &str = "<:_:1322530588078637089>";
   pub const ICON_BOOST_LEVEL_3: &str = "<:_:1322530608735588422>";
+  pub const ICON_IMAGE_FILE: &str = "<:_:1322898336507887677>";
+  pub const ICON_IMAGE_FILE_WITH_PADDED_BOX: &str = "<:_:1322898380246089772>";
+  pub const ICON_GITHUB: &str = "<:_:1322898821432475740>";
 }
 
 impl Badges {
