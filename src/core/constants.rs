@@ -18,6 +18,8 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 pub const REPOSITORY: &str = env!("CARGO_PKG_REPOSITORY");
 
+pub const GIT_HASH: &str = env!("GIT_HASH");
+
 pub const COMMAND_PREFIX: &str = "m!";
 
 pub struct Messages;
@@ -40,6 +42,7 @@ impl Messages {
     "here you go! hope this helps! ^w^",
     "confused? don't worry, i'm here to guide you! c:",
   ];
+  pub const COMMAND_PING_REPLY: [&str; 3] = ["hai!! :3", "pong!!", "waaaaaaaaaaa"];
 }
 
 impl Emojis {
@@ -62,6 +65,10 @@ impl Emojis {
   pub const ICON_IMAGE_FILE: &str = "<:_:1322898336507887677>";
   pub const ICON_IMAGE_FILE_WITH_PADDED_BOX: &str = "<:_:1322898380246089772>";
   pub const ICON_GITHUB: &str = "<:_:1322898821432475740>";
+  pub const ICON_GIT_COMMIT: &str = "<:_:1323601931075321886>";
+  pub const ICON_HEART_BEAT: &str = "<:_:1323605565775020084>";
+  pub const ICON_PING_PONG: &str = "<:_:1323605606237737042>";
+  pub const ICON_UPTIME: &str = "<:_:1323620337656533084>";
 }
 
 impl Badges {

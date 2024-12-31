@@ -1,4 +1,7 @@
-use poise::{ serenity_prelude::{ CreateEmbed, EmbedField, GuildId, ImageHash }, CreateReply };
+use poise::{
+  serenity_prelude::{ CreateEmbed, EmbedField, GuildId, ImageHash, RoleId },
+  CreateReply,
+};
 
 use crate::{
   convert_to_timestamp,
@@ -22,6 +25,10 @@ pub async fn guild_command(
   splash: Option<ImageHash>,
   banner: Option<String>,
   description: Option<String>,
+  mut features: Vec<String>,
+  owner_id: Option<u64>,
+  roles: Option<Vec<RoleId>>,
+  show_detailed: Option<bool>,
   ephemeral: Option<bool>
 ) -> Result<(), Error> {
   let mut fields = vec![
@@ -86,11 +93,60 @@ pub async fn guild_command(
     guild_embed = guild_embed.image(&banner);
     fields.push(EmbedField::new("Guild Banner", get_download_links(&banner), true));
   }
+  if let Some(show_detailed) = show_detailed {
+    if show_detailed {
+      if let Some(owner_id) = owner_id {
+        fields.push(EmbedField::new("Guild Owner", format!("<@{}>", owner_id), true));
+      }
+
+      features = features
+        .iter()
+        .map(|f| (
+          if f.split("_").count() > 0 {
+            f.split("_")
+              .map(|f|
+                format!(
+                  "{}{}",
+                  f.chars().next().unwrap_or_default().to_uppercase(),
+                  &f[1..].to_lowercase()
+                )
+              )
+              .collect::<Vec<_>>()
+              .join(" ")
+          } else {
+            format!(
+              "{}{}",
+              f.chars().next().unwrap_or_default().to_uppercase(),
+              &f[1..].to_lowercase()
+            )
+          }
+        ))
+        .collect();
+
+      fields.push(EmbedField::new("Guild Features", features.join(", "), true));
+
+      if let Some(roles) = roles {
+        fields.push(
+          EmbedField::new(
+            "Guild Roles",
+            roles
+              .iter()
+              .map(|role| format!("<@&{}>", role.get()))
+              .collect::<Vec<_>>()
+              .join(", "),
+            true
+          )
+        );
+      }
+    }
+  }
 
   guild_embed = guild_embed.fields(fields);
 
   ctx.send(
-    CreateReply::new().embed(CreateEmbed::from(guild_embed)).ephemeral(ephemeral.unwrap_or(false))
+    CreateReply::default()
+      .embed(CreateEmbed::from(guild_embed))
+      .ephemeral(ephemeral.unwrap_or(false))
   ).await?;
 
   Ok(())
@@ -107,6 +163,7 @@ pub async fn guild_command(
 pub async fn guild(
   ctx: Context<'_>,
   #[description = "Target guild id"] guild_id: Option<String>,
+  #[description = "Show detailed information"] show_detailed: Option<bool>,
   #[description = "Incognito mode"] ephemeral: Option<bool>
 ) -> Result<(), Error> {
   if let Some(guild_id) = guild_id {
@@ -133,6 +190,10 @@ pub async fn guild(
           guild_preview.splash,
           None,
           guild_preview.description,
+          guild_preview.features,
+          None,
+          None,
+          show_detailed,
           ephemeral
         ).await?;
       }
@@ -179,6 +240,15 @@ pub async fn guild(
             partial_guild.splash,
             banner,
             partial_guild.description,
+            partial_guild.features,
+            Some(partial_guild.owner_id.get()),
+            Some(
+              partial_guild.roles
+                .iter()
+                .map(|r| *r.0)
+                .collect::<Vec<_>>()
+            ),
+            show_detailed,
             ephemeral
           ).await?;
         }

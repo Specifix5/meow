@@ -65,7 +65,7 @@ pub async fn banner_command(
     banner_embed = add_download_links(banner_embed.image(&banner_link), &banner_link);
 
     ctx.send(
-      CreateReply::new()
+      CreateReply::default()
         .embed(CreateEmbed::from(banner_embed))
         .ephemeral(ephemeral.unwrap_or(false))
     ).await?;
@@ -98,7 +98,7 @@ pub async fn banner(
 }
 
 #[poise::command(
-  context_menu_command = "View banner",
+  context_menu_command = "View Banner",
   category = "General",
   install_context = "Guild|User",
   interaction_context = "Guild|PrivateChannel"
@@ -108,7 +108,7 @@ pub async fn user_banner(ctx: Context<'_>, target: User) -> Result<(), Error> {
 }
 
 #[poise::command(
-  context_menu_command = "View Guild banner",
+  context_menu_command = "View Guild Banner",
   category = "General",
   install_context = "Guild|User",
   interaction_context = "Guild|PrivateChannel"

@@ -8,6 +8,7 @@ pub mod utils {
   pub mod event_handler;
   pub mod logging;
   pub mod ranime;
+  pub mod system_info;
 }
 
 pub mod constants;

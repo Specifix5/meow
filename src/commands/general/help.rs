@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use crate::{
   core::{
-    constants::{ REPOSITORY, URL_MEOWBOT_BANNER, VERSION },
+    constants::{ GIT_HASH, REPOSITORY, URL_MEOWBOT_BANNER, VERSION },
     utils::{ error_handler::send_cmd_error, ranime::get_random_anime },
   },
   random_message,
@@ -145,7 +145,7 @@ pub async fn help(
   let mut fields: Vec<EmbedField> = category_name_list
     .iter()
     .map(|category| {
-      let commands_in_category: Vec<String> = commands
+      let unsorted_commands_in_category: Vec<String> = commands
         .clone()
         .filter(|c| {
           c.category.as_ref().unwrap_or(&Cow::from(Messages::COMMAND_NOCATEGORY)) == category
@@ -153,16 +153,25 @@ pub async fn help(
         .map(|c| format!("`{}`", c.name))
         .collect();
 
+      let mut commands_in_category: Vec<String> = Vec::new();
+
+      for (i, command) in unsorted_commands_in_category.into_iter().enumerate() {
+        commands_in_category.push(command);
+        if (i + 1) % 5 == 0 {
+          commands_in_category.push("\n".to_owned());
+        }
+      }
+
       EmbedField::new(
         format!("**{} {} Commands**", Emojis::ARROW_RIGHT, category),
-        commands_in_category.join(", "),
-        true
+        commands_in_category.join(" "),
+        false
       )
     })
     .collect();
 
   let mut help_embed = MeowEmbed::new()
-    .title(format!("{} (v{}) — Help Page", APP_NAME, VERSION))
+    .title(format!("{} — Help Page", APP_NAME))
     .image(URL_MEOWBOT_BANNER)
     .description(&description.join("\n"))
     .footer(CreateEmbedFooter::new(""));
@@ -171,9 +180,13 @@ pub async fn help(
     help_embed = help_embed.thumbnail(url);
     fields.push(
       EmbedField::new(
-        format!("{} Others", Emojis::ARROW_RIGHT),
+        format!("**{} Others**", Emojis::ARROW_RIGHT),
         format!(
-          "-# [{}img source]({}), [{}github repo]({})",
+          "**{} Version:** `v{}` ({}`{}`)\n-# [{}img source]({}), [{}github repo]({})",
+          Emojis::ICON_INFO,
+          VERSION,
+          Emojis::ICON_GIT_COMMIT,
+          GIT_HASH,
           Emojis::ICON_IMAGE_FILE,
           src,
           Emojis::ICON_GITHUB,

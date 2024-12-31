@@ -40,7 +40,9 @@ pub async fn avatar_command(
   avatar_embed = add_download_links(avatar_embed, &avatar_link);
 
   ctx.send(
-    CreateReply::new().embed(CreateEmbed::from(avatar_embed)).ephemeral(ephemeral.unwrap_or(false))
+    CreateReply::default()
+      .embed(CreateEmbed::from(avatar_embed))
+      .ephemeral(ephemeral.unwrap_or(false))
   ).await?;
 
   Ok(())

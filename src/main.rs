@@ -1,7 +1,12 @@
 use command_list::get_commands;
 use poise::serenity_prelude as serenity;
-use core::utils::{ error_handler::error_handler, event_handler::Handler };
-use std::borrow::Cow;
+use core::utils::{
+  error_handler::error_handler,
+  event_handler::Handler,
+  system_info::{ get_app_uptime, refresh_system_info },
+};
+use serenity::cache::Settings;
+use std::{ borrow::Cow, time::Duration };
 use tokio::signal::ctrl_c;
 
 pub struct Data {}
@@ -22,6 +27,10 @@ async fn main() -> Result<(), Error> {
   let token = std::env::var("CLIENT_TOKEN").expect("missing CLIENT_TOKEN");
   let intents =
     serenity::GatewayIntents::non_privileged() | serenity::GatewayIntents::MESSAGE_CONTENT;
+
+  let mut settings = Settings::default();
+  settings.time_to_live = Duration::from_secs(60);
+  settings.cache_channels = false;
 
   let framework: poise::Framework<Data, Error> = poise::Framework
     ::builder()
@@ -46,7 +55,13 @@ async fn main() -> Result<(), Error> {
   let client: Result<serenity::Client, serenity::Error> = serenity::ClientBuilder
     ::new(token, intents)
     .event_handler(Handler)
+    .cache_settings(settings)
     .framework(framework).await;
+
+  let system_info_task = tokio::spawn(async {
+    get_app_uptime();
+    refresh_system_info().await;
+  });
 
   let client_task = tokio::spawn(async move {
     if let Err(why) = client.unwrap().start().await {
@@ -58,5 +73,6 @@ async fn main() -> Result<(), Error> {
   logger!("Received SIGINT Signal, Shutting down..");
 
   client_task.abort();
+  system_info_task.abort();
   Ok(())
 }
