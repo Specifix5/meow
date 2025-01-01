@@ -33,8 +33,6 @@ pub async fn ping(
 
   let ping_end_time = ping_start_time.elapsed().as_millis();
 
-  ctx.cache().guilds().len();
-
   let description: [String; 4] = [
     format!("**{} API/Heartbeat:** `{} ms`", Emojis::ICON_HEART_BEAT, ctx.ping().await.as_millis()),
     format!("**{} Client Latency:** `{} ms`", Emojis::ICON_PING_PONG, ping_end_time),
