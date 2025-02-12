@@ -12,6 +12,8 @@ pub const URL_CDN_GUILD_SPLASH: &str = "https://cdn.discordapp.com/splashes/";
 pub const URL_MEOWBOT_BANNER: &str =
   "https://cdn.discordapp.com/attachments/1306245076300861450/1322888760836493343/meowbot_banner.png";
 
+pub const URL_BASE_ACTION: &str = "https://nekos.best/api/v2/";
+
 pub const APP_NAME: &str = env!("CARGO_PKG_NAME");
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");

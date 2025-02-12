@@ -1,6 +1,8 @@
 pub mod nyan {
   pub mod embed;
   pub mod user;
+  pub mod database;
+  pub mod api;
 }
 
 pub mod utils {

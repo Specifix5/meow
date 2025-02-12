@@ -6,3 +6,7 @@ pub mod general {
   pub mod guild;
   pub mod ping;
 }
+
+pub mod fun {
+  pub mod interact;
+}

@@ -1,15 +1,21 @@
 use command_list::get_commands;
 use poise::serenity_prelude as serenity;
-use core::utils::{
-  error_handler::error_handler,
-  event_handler::Handler,
-  system_info::{ get_app_uptime, refresh_system_info },
+use sqlx::{ Executor, SqlitePool };
+use core::{
+  nyan::database::{ self, Database },
+  utils::{
+    error_handler::error_handler,
+    event_handler::Handler,
+    system_info::{ get_app_uptime, refresh_system_info },
+  },
 };
 use serenity::cache::Settings;
 use std::{ borrow::Cow, time::Duration };
 use tokio::signal::ctrl_c;
 
-pub struct Data {}
+pub struct Data {
+  db: Database,
+}
 pub type Error = Box<dyn std::error::Error + Send + Sync>;
 pub type Context<'a> = poise::Context<'a, Data, Error>;
 
@@ -32,6 +38,22 @@ async fn main() -> Result<(), Error> {
   settings.time_to_live = Duration::from_secs(60);
   settings.cache_channels = false;
 
+  // Database Initialization
+  let db_pool = SqlitePool::connect("sqlite://database.db").await.expect(
+    "Failed to connect to database"
+  );
+  let db = database::Database { pool: db_pool };
+  let schema = include_str!("./core/sql/schema.sql");
+
+  db.perform_transaction(|mut transaction| {
+    Box::pin(async move {
+      transaction.execute(schema).await?;
+      transaction.commit().await?;
+      logger!("Database initialized");
+      Ok(())
+    })
+  }).await?;
+
   let framework: poise::Framework<Data, Error> = poise::Framework
     ::builder()
     .options(poise::FrameworkOptions {
@@ -47,7 +69,9 @@ async fn main() -> Result<(), Error> {
     .setup(|ctx, _ready, framework| {
       Box::pin(async move {
         poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-        Ok(Data {})
+        Ok(Data {
+          db,
+        })
       })
     })
     .build();

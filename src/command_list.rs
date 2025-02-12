@@ -20,6 +20,8 @@ pub fn get_commands() -> Vec<Command<Data, Error>> {
 
     general::guild::guild(),
 
-    general::ping::ping()
+    general::ping::ping(),
+
+    fun::interact::interact()
   ]
 }
