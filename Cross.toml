@@ -1,0 +1,5 @@
+[build.env]
+passthrough = [
+    "GIT_HASH",
+    "GIT_HASH_LONG",
+]
