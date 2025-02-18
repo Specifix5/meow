@@ -10,6 +10,7 @@ use crate::{
     nyan::{ embed::{ get_download_links, MeowEmbed }, user::is_guild_install },
     utils::error_handler::send_cmd_error,
   },
+  //logger,
   Context,
   Error,
 };
@@ -123,15 +124,31 @@ pub async fn guild_command(
         ))
         .collect();
 
+      //logger!(features.join(","));
+
+      if features.is_empty() {
+        features.push("None or Unable to get Features".to_owned());
+      }
       fields.push(EmbedField::new("Guild Features", features.join(", "), true));
 
       if let Some(roles) = roles {
+        const MAX_ROLES: i32 = 15;
+        let mut _index = 0;
         fields.push(
           EmbedField::new(
             "Guild Roles",
             roles
               .iter()
-              .map(|role| format!("<@&{}>", role.get()))
+              .map_while(|role| {
+                _index = _index + 1;
+                if _index < MAX_ROLES {
+                  Some(format!("<@&{}>", role.get()))
+                } else if _index == MAX_ROLES {
+                  Some(format!("... *{} more*", (roles.len() as i32) - MAX_ROLES))
+                } else {
+                  None
+                }
+              })
               .collect::<Vec<_>>()
               .join(", "),
             true
