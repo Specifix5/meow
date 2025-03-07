@@ -3,19 +3,37 @@
 A multi-purpose, all-in-one discord bot \
 ⚠️ (code is very :sob:)
 
-## Setting up the project
-* Set up the environment variables defined in `.env.example` on an `.env` file
-* Create a new json file in the main directory called `random_anime.json`, this will be the file containing all pics and its sources that is displayed in the help command.
-```json
-[
-  {
-    "src": "SOURCE LINK",
-    "url": "URL TO TRANSPARENT IMAGE"
-  },
-  // ... Add more to your liking.
-]
-```
-* You should be able to run meowbot by typing `cargo run dev`
+### Key Features
 
-## Currently work in progress
-![wawa](https://count.specifix.dev/get/@meowbot?theme=rule34)
+- Action commands, such as /action kiss, hug, etc.
+- User info commands (avatar, banner, etc)
+
+# Configuring the bot
+
+- Install all dependencies beforehand:
+
+```bash
+npm install
+```
+
+- Create a .env file in the project folder. Example of .env file:
+
+```env
+CLIENT_TOKEN=ABCDEFGH
+```
+
+- Modify `constants.ts` file as you wish.
+
+# Deploying the bot
+
+On dev environment:
+
+```bash
+npm run dev
+```
+
+On production (immediately runs from dist, assuming everything has been compiled beforehand)
+
+```bash
+npm run start
+```
