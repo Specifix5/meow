@@ -157,7 +157,7 @@ pub async fn interact_command(
             msg
               .await_component_interaction(&ctx.serenity_context().shard)
               .author_id(target.id)
-              .timeout(std::time::Duration::from_secs(10)).await
+              .timeout(std::time::Duration::from_secs(60 * 2)).await
           {
             Some(interaction) => {
               match get_embed_interact_command(ctx, action, &target, ctx.author().clone()).await {
