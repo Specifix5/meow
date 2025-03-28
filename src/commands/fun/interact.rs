@@ -1,4 +1,16 @@
-use poise::{ serenity_prelude::{ CreateEmbed, CreateEmbedFooter, Mentionable, User }, CreateReply };
+use poise::{
+  serenity_prelude::{
+    CreateActionRow,
+    CreateButton,
+    CreateEmbed,
+    CreateEmbedFooter,
+    CreateInteractionResponse,
+    CreateInteractionResponseMessage,
+    Mentionable,
+    User,
+  },
+  CreateReply,
+};
 
 use crate::{
   core::{ constants, nyan::{ api, embed::MeowEmbed }, utils::error_handler::send_cmd_error },
@@ -39,24 +51,18 @@ impl Action {
   }
 }
 
-pub async fn interact_command(
+pub async fn get_embed_interact_command(
   ctx: Context<'_>,
   action: Action,
-  target: User,
-  ephemeral: Option<bool>
-) -> Result<(), Error> {
-  if ephemeral.unwrap_or(false) {
-    ctx.defer_ephemeral().await?;
-  } else {
-    ctx.defer().await?;
-  }
-
+  author: &User,
+  target: User
+) -> Result<Option<MeowEmbed>, Error> {
   let l_action = action.to_string();
   let action_cloned = action.clone();
   let action_string = action.to_past_string();
   match api::get(action).await {
     Ok(res) => {
-      let action_took = ctx.data().db.perform_transaction::<_, i32>(|mut transaction|
+      let action_took = &ctx.data().db.perform_transaction::<_, i32>(|mut transaction|
         Box::pin(async move {
           let target_id_string = target.id.to_string();
           sqlx
@@ -87,7 +93,7 @@ pub async fn interact_command(
       ).await?;
 
       let description: [String; 2] = [
-        format!("### {} **{}** {}", ctx.author().mention(), action_string, target.mention()),
+        format!("### {} **{}** {}", &author.mention(), action_string, target.mention()),
         format!(
           "{} **{}** now has ``{}`` {}",
           constants::Emojis::ARROW_BRANCH_END,
@@ -104,14 +110,86 @@ pub async fn interact_command(
             format!("{} | {} v{}", res.anime_name, constants::APP_NAME, constants::VERSION)
           )
         );
-      ctx.send(
-        CreateReply::default()
-          .embed(CreateEmbed::from(interact_embed))
-          .ephemeral(ephemeral.unwrap_or(false))
-      ).await?;
-      Ok(())
+
+      Ok(Some(interact_embed))
     }
 
+    Err(err) => { Err(err) }
+  }
+}
+
+pub async fn interact_command(
+  ctx: Context<'_>,
+  action: Action,
+  target: User,
+  ephemeral: Option<bool>
+) -> Result<(), Error> {
+  if ephemeral.unwrap_or(false) {
+    ctx.defer_ephemeral().await?;
+  } else {
+    ctx.defer().await?;
+  }
+
+  match get_embed_interact_command(ctx, action.clone(), ctx.author(), target.clone()).await {
+    Ok(interact_embed) => {
+      match interact_embed {
+        Some(interact_embed) => {
+          let msg = ctx
+            .send(
+              CreateReply::default()
+                .embed(CreateEmbed::from(interact_embed))
+                .ephemeral(ephemeral.unwrap_or(false))
+                .components(
+                  vec![
+                    CreateActionRow::Buttons(
+                      vec![
+                        CreateButton::new("response_interaction_back")
+                          .style(poise::serenity_prelude::ButtonStyle::Primary)
+                          .label(format!("{} back", &action.to_string()))
+                      ]
+                    )
+                  ]
+                )
+            ).await?
+            .into_message().await?;
+
+          match
+            msg
+              .await_component_interaction(&ctx.serenity_context().shard)
+              .author_id(target.id)
+              .timeout(std::time::Duration::from_secs(10)).await
+          {
+            Some(interaction) => {
+              match get_embed_interact_command(ctx, action, &target, ctx.author().clone()).await {
+                Ok(interact_embed) => {
+                  match interact_embed {
+                    Some(interact_embed) => {
+                      interaction.create_response(
+                        &ctx,
+                        CreateInteractionResponse::Message(
+                          CreateInteractionResponseMessage::default()
+                            .embed(CreateEmbed::from(interact_embed))
+                            .ephemeral(ephemeral.unwrap_or(false))
+                        )
+                      ).await?;
+                    }
+                    None => {}
+                  }
+                }
+                Err(err) => {
+                  send_cmd_error(ctx, err.to_string()).await;
+                }
+              }
+            }
+            None => {}
+          }
+
+          Ok(())
+        }
+
+        None => { Ok(()) }
+      }
+    }
     Err(err) => {
       send_cmd_error(ctx, err.to_string()).await;
       Ok(())
