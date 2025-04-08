@@ -29,6 +29,7 @@ pub mod command_list;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
+  logger!(format!("Starting meowbot - v{}", env!("CARGO_PKG_VERSION")));
   dotenv::dotenv().ok();
   let token = std::env::var("CLIENT_TOKEN").expect("missing CLIENT_TOKEN");
   let intents =
