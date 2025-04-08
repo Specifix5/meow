@@ -12,6 +12,12 @@ pub const URL_CDN_GUILD_SPLASH: &str = "https://cdn.discordapp.com/splashes/";
 pub const URL_MEOWBOT_BANNER: &str =
   "https://cdn.discordapp.com/attachments/1306245076300861450/1322888760836493343/meowbot_banner.png";
 
+pub const URL_MEOWBOT_INVITE_GUILD: &str =
+  "https://discord.com/oauth2/authorize?client_id=1208938811061571604&permissions=581066125790272&integration_type=0&scope=bot";
+
+pub const URL_MEOWBOT_INVITE_APP: &str =
+  "https://discord.com/oauth2/authorize?client_id=1208938811061571604&integration_type=1&scope=applications.commands";
+
 pub const URL_BASE_ACTION: &str = "https://nekos.best/api/v2/";
 
 pub const APP_NAME: &str = env!("CARGO_PKG_NAME");
@@ -73,6 +79,7 @@ impl Emojis {
   pub const ICON_HEART_BEAT: &str = "<:_:1323605565775020084>";
   pub const ICON_PING_PONG: &str = "<:_:1323605606237737042>";
   pub const ICON_UPTIME: &str = "<:_:1323620337656533084>";
+  pub const ICON_STAR: &str = "<:_:1359137960464879817>";
 }
 
 impl Badges {

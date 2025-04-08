@@ -2,7 +2,15 @@ use std::collections::HashSet;
 
 use crate::{
   core::{
-    constants::{ GIT_HASH, GIT_HASH_LONG, REPOSITORY, URL_MEOWBOT_BANNER, VERSION },
+    constants::{
+      GIT_HASH,
+      GIT_HASH_LONG,
+      REPOSITORY,
+      URL_MEOWBOT_BANNER,
+      URL_MEOWBOT_INVITE_APP,
+      URL_MEOWBOT_INVITE_GUILD,
+      VERSION,
+    },
     utils::{ error_handler::send_cmd_error, ranime::get_random_anime },
   },
   random_message,
@@ -171,7 +179,7 @@ pub async fn help(
     .collect();
 
   let mut help_embed = MeowEmbed::new()
-    .title(format!("{} — Help Page", APP_NAME))
+    .title(format!("{} — help desk", APP_NAME))
     .image(URL_MEOWBOT_BANNER)
     .description(&description.join("\n"))
     .footer(CreateEmbedFooter::new(""));
@@ -182,12 +190,19 @@ pub async fn help(
       EmbedField::new(
         format!("**{} Others**", Emojis::ARROW_RIGHT),
         format!(
-          "**{} Version:** `v{}` ([{}__{}__]({}))\n-# [{}img source]({}), [{}github repo]({})",
+          "**{} Version:** `v{}` ([{}__{}__]({}))\n-# ~~———~~\n[**{}invite to guild**]({}) /\\/ [**add as user command**]({})\n-# [{}img source]({}), [{}github repo]({})",
           Emojis::ICON_INFO,
           VERSION,
           Emojis::ICON_GIT_COMMIT,
           GIT_HASH,
           format!("{}/commit/{}", REPOSITORY, GIT_HASH_LONG),
+
+          // Second line
+          Emojis::ICON_STAR,
+          URL_MEOWBOT_INVITE_GUILD,
+          URL_MEOWBOT_INVITE_APP,
+
+          // Img source and Github Repo
           Emojis::ICON_IMAGE_FILE,
           src,
           Emojis::ICON_GITHUB,
