@@ -44,7 +44,7 @@ pub async fn ping(
     format!("**{} Uptime:** `{}`", Emojis::ICON_UPTIME, get_app_uptime_string()),
   ];
   let ping_embed = MeowEmbed::new()
-    .title(format!("{} — Status Page", APP_NAME))
+    .title(format!("{} — status page", APP_NAME))
     .description(description.join("\n"));
 
   reply_handle.edit(

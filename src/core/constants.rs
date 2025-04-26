@@ -13,7 +13,7 @@ pub const URL_MEOWBOT_BANNER: &str =
   "https://cdn.discordapp.com/attachments/1306245076300861450/1322888760836493343/meowbot_banner.png";
 
 pub const URL_MEOWBOT_INVITE_GUILD: &str =
-  "https://discord.com/oauth2/authorize?client_id=1208938811061571604&permissions=581066125790272&integration_type=0&scope=bot";
+  "https://discord.com/oauth2/authorize?client_id=1208938811061571604&permissions=568825468808262&integration_type=0&scope=bot+applications.commands";
 
 pub const URL_MEOWBOT_INVITE_APP: &str =
   "https://discord.com/oauth2/authorize?client_id=1208938811061571604&integration_type=1&scope=applications.commands";

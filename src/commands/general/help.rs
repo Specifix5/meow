@@ -190,7 +190,7 @@ pub async fn help(
       EmbedField::new(
         format!("**{} Others**", Emojis::ARROW_RIGHT),
         format!(
-          "**{} Version:** `v{}` ([{}__{}__]({}))\n-# ~~———~~\n[**{}invite to guild**]({}) /\\/ [**add as user command**]({})\n-# [{}img source]({}), [{}github repo]({})",
+          "**{} Version:** `v{}` ([{}__{}__]({}))\n{}**invite [__to guild__]({})** / **[__as user app__]({})**\n-# [{}img source]({}), [{}github repo]({})",
           Emojis::ICON_INFO,
           VERSION,
           Emojis::ICON_GIT_COMMIT,
