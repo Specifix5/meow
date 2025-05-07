@@ -8,7 +8,7 @@ use crate::{ core::utils::error_handler::send_cmd_error, logger, Context, Error 
 #[poise::command(
   slash_command,
   prefix_command,
-  category = "General",
+  category = "Misc",
   install_context = "Guild|User",
   interaction_context = "Guild|PrivateChannel"
 )]
