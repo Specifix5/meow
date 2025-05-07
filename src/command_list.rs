@@ -22,6 +22,8 @@ pub fn get_commands() -> Vec<Command<Data, Error>> {
 
     general::ping::ping(),
 
-    fun::interact::interact()
+    fun::interact::interact(),
+
+    misc::calcexp::calcexp()
   ]
 }

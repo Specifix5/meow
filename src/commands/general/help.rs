@@ -184,13 +184,13 @@ pub async fn help(
     .description(&description.join("\n"))
     .footer(CreateEmbedFooter::new(""));
 
-  if let Some((src, url)) = get_random_anime() {
+  if let Some((_, url)) = get_random_anime() {
     help_embed = help_embed.thumbnail(url);
     fields.push(
       EmbedField::new(
         format!("**{} Others**", Emojis::ARROW_RIGHT),
         format!(
-          "**{} Version:** `v{}` ([{}__{}__]({}))\n{}**invite [__to guild__]({})** / **[__as user app__]({})**\n-# [{}img source]({}), [{}github repo]({})",
+          "**{} Version:** `v{}` ([{}__{}__]({}))\n{}**invite [__to guild__]({})** / **[__as user app__]({})**",
           Emojis::ICON_INFO,
           VERSION,
           Emojis::ICON_GIT_COMMIT,
@@ -200,13 +200,7 @@ pub async fn help(
           // Second line
           Emojis::ICON_STAR,
           URL_MEOWBOT_INVITE_GUILD,
-          URL_MEOWBOT_INVITE_APP,
-
-          // Img source and Github Repo
-          Emojis::ICON_IMAGE_FILE,
-          src,
-          Emojis::ICON_GITHUB,
-          REPOSITORY
+          URL_MEOWBOT_INVITE_APP
         ),
         false
       )
